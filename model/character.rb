@@ -17,7 +17,7 @@ module Ex3Bot
 
     def self.create!(redis, room, name)
       character = Ex3Bot::Character.new(redis, room, name)
-      character.name!(name)
+      character.name = name
       character
     end
 
@@ -33,7 +33,7 @@ module Ex3Bot
       @redis.exists(record_key)
     end
 
-    def name!(n)
+    def name=(n)
       @redis.hset(record_key, "name", n)
     end
 
@@ -41,7 +41,7 @@ module Ex3Bot
       raw.to_s
     end
 
-    def initiative!(i)
+    def initiative=(i)
       @redis.hset(record_key, "initiative", i)
     end
 
@@ -49,7 +49,7 @@ module Ex3Bot
       raw.to_i
     end
 
-    def acted!(a)
+    def acted=(a)
       @redis.hset(record_key, "acted", a ? "y" : "n")
     end
 

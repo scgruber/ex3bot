@@ -31,7 +31,7 @@ module Lita::Handlers
       initiative = response.match_data.named_captures["num"].to_i
 
       character = Ex3Bot::Character.create!(redis, room.id, name)
-      character.initiative!(initiative)
+      character.initiative = initiative
       robot.trigger(:list_order, room: room)
     end
 
@@ -43,7 +43,7 @@ module Lita::Handlers
       initiative = response.match_data.named_captures["num"].to_i
 
       with_character(robot, redis, room, name) do |character|
-        character.initiative!(initiative)
+        character.initiative = initiative
         robot.trigger(:list_order, room: room)
       end
     end
@@ -55,7 +55,7 @@ module Lita::Handlers
       name, room = get_name_and_room(response)
 
       with_character(robot, redis, room, name) do |character|
-        character.acted!(true)
+        character.acted = true
         robot.trigger(:list_order, room: room)
       end
     end
@@ -68,7 +68,7 @@ module Lita::Handlers
       room = response.message.source.room_object
       characters = Ex3Bot::Character.all_in_room(redis, room.id)
       characters.each do |c|
-        c.acted!(false)
+        c.acted = false
       end
 
       response.reply("Next round! Recover 5 motes.")
