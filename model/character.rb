@@ -30,7 +30,7 @@ module Ex3Bot
     end
 
     def exists?
-      @redis.exists?(record_key)
+      @redis.exists(record_key)
     end
 
     def name!(n)

@@ -37,12 +37,9 @@ module Lita::Handlers
       name, room = get_name_and_room(response)
       initiative = response.match_data.named_captures["num"].to_i
 
-      character = Ex3Bot::Character.new(redis, room.id, name)
-      if character.exists?
+      with_character(robot, redis, room, name) do |character|
         character.initiative!(initiative)
         robot.trigger(:list_order, room: room)
-      else
-        robot.trigger(:error_no_name, room: room, name: name)
       end
     end
 
@@ -50,12 +47,9 @@ module Lita::Handlers
       log.debug("Triggering #act")
       name, room = get_name_and_room(response)
 
-      character = Ex3Bot::Character.new(redis, room.id, name)
-      if character.exists?
+      with_character(robot, redis, room, name) do |character|
         character.acted!(true)
         robot.trigger(:list_order, room: room)
-      else
-        robot.trigger(:error_no_name, room: room, name: name)
       end
     end
 
@@ -88,7 +82,6 @@ module Lita::Handlers
 
     ### Event handlers
     on :list_order, :list_order
-    on :error_no_name, :error_no_name
 
     # Print the current initiative list in order.
     # Splits up characters that have not acted / have acted in this round.
@@ -117,17 +110,21 @@ module Lita::Handlers
       end
     end
 
-    # Posts an error message that the character name is not found.
-    def error_no_name(room:, name:)
-      log.debug("Triggering #error_no_name")
-      robot.send_message(Lita::Source.new(room: room), "Name not found: #{name}")
-    end
-
     ### Helpers
     private def get_name_and_room(response)
       name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
       room = response.message.source.room_object
       [name, room]
+    end
+
+    # If the character exists, call the block on it. Otherwise, send an error message.
+    private def with_character(robot, redis, room, name, &block)
+      character = Ex3Bot::Character.new(redis, room.id, name)
+      if character.exists?
+        block.call(character)
+      else
+        robot.send_message(Lita::Source.new(room: room), "Name not found: #{name}")
+      end
     end
   end
 
