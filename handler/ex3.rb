@@ -3,13 +3,13 @@ require_relative '../model/character'
 module Lita::Handlers
   class Ex3 < Lita::Handler
     ### Chat Handlers
-    route(/^join\s+(?:([^\s\"]+)|\"([^\"]+)\")\s+(-?\d+)$/, :join, command: true, help: {
+    route(/^join\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :join, command: true, help: {
         "join CHARACTER NUM" => "Add CHARACTER to the initiative order with NUM initiative."
     })
-    route(/^init\s+(?:([^\s\"]+)|\"([^\"]+)\")\s+(-?\d+)$/, :init, command: true, help: {
+    route(/^init\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :init, command: true, help: {
         "init CHARACTER NUM" => "Set initiative for CHARACTER to NUM."
     })
-    route(/^act\s+(?:([^\s\"]+)|\"([^\"]+)\")$/, :act, command: true, help: {
+    route(/^act\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")$/, :act, command: true, help: {
         "act CHARACTER" => "Mark CHARACTER as acted for the current round."
     })
     route(/^round$/, :round, command: true, help: {
@@ -24,9 +24,9 @@ module Lita::Handlers
 
     def join(response)
       log.debug("Triggering #join")
-      name = response.match_data.captures[0] || response.match_data.captures[1]
+      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
       room = response.message.source.room
-      initiative = response.match_data.captures[2].to_i
+      initiative = response.match_data.named_captures["num"].to_i
 
       character = Ex3Bot::Character.create!(redis, room, name)
       character.initiative!(initiative)
@@ -35,9 +35,9 @@ module Lita::Handlers
 
     def init(response)
       log.debug("Triggering #init")
-      name = response.match_data.captures[0] || response.match_data.captures[1]
+      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
       room = response.message.source.room
-      initiative = response.match_data.captures[2].to_i
+      initiative = response.match_data.named_captures["num"].to_i
 
       character = Ex3Bot::Character.new(redis, room, name)
       if character.exists?
@@ -50,7 +50,7 @@ module Lita::Handlers
 
     def act(response)
       log.debug("Triggering #act")
-      name = response.match_data.captures[0] || response.match_data.captures[1]
+      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
       room = response.message.source.room
 
       character = Ex3Bot::Character.new(redis, room, name)
