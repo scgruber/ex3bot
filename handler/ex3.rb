@@ -22,6 +22,9 @@ module Lita::Handlers
         "finish" => "End the combat and remove all characters from the initiative order."
     })
 
+    # Create a new character in the current room.
+    # Set the character's initiative to <num>.
+    # Display the initiative order.
     def join(response)
       log.debug("Triggering #join")
       name, room = get_name_and_room(response)
@@ -32,6 +35,8 @@ module Lita::Handlers
       robot.trigger(:list_order, room: room)
     end
 
+    # Set a character's initiative to <num>.
+    # Display the initiative order.
     def init(response)
       log.debug("Triggering #init")
       name, room = get_name_and_room(response)
@@ -43,6 +48,8 @@ module Lita::Handlers
       end
     end
 
+    # Set a character to the acted state.
+    # Display the initiative order.
     def act(response)
       log.debug("Triggering #act")
       name, room = get_name_and_room(response)
@@ -53,6 +60,9 @@ module Lita::Handlers
       end
     end
 
+    # Set all characters out of the acted state.
+    # Post a message to start the next round.
+    # Display the initiative order.
     def round(response)
       log.debug("Triggering #round")
       room = response.message.source.room_object
@@ -65,11 +75,14 @@ module Lita::Handlers
       robot.trigger(:list_order, room: room)
     end
 
+    # Display the initiative order.
     def show(response)
       log.debug("Triggering #act")
       robot.trigger(:list_order, room: response.message.source.room_object)
     end
 
+    # Remove all characters from the room.
+    # Post a message that combat has ended.
     def finish(response)
       log.debug("Triggering #finish")
       room = response.message.source.room_object
@@ -111,6 +124,8 @@ module Lita::Handlers
     end
 
     ### Helpers
+
+    # Get the character name (quoted or not) and the current chat room.
     private def get_name_and_room(response)
       name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
       room = response.message.source.room_object
