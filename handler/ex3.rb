@@ -12,6 +12,9 @@ module Lita::Handlers
     route(/^ons\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :ons, command: true, help: {
         "ons CHARACTER NUM" => "Set onslaught for CHARACTER to NUM."
     })
+    route(/^wither\s+(?:(?<attacker>[^\s\"]+)|\"(?<attacker_quoted>[^\"]+)\")\s+(?<attacker_imod>[+-]\d+)\s+>\s+(?:(?<defender>[^\s\"]+)|\"(?<defender_quoted>[^\"]+)\")\s+(?<defender_imod>[+-]\d+)$/, :wither, command: true, help: {
+        "wither ATTACKER AMOD > DEFENDER DMOD" => "Withering attack. ATTACKER initiative changes by AMOD. DEFENDER initiative changes by DMOD. Defender gains onslaught."
+    })
     route(/^act\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")$/, :act, command: true, help: {
         "act CHARACTER" => "Mark CHARACTER as acted for the current round."
     })
@@ -66,6 +69,27 @@ module Lita::Handlers
       with_character(robot, redis, room, name) do |character|
         character.onslaught = onslaught
         robot.trigger(:list_order, room: room)
+      end
+    end
+
+    # Modify attacker initiative by <attacker_imod>.
+    # Modify defender initiative by <defender_imod>.
+    # Worsen defender onslaught penalty by 1.
+    def wither(response)
+      log.debug("Triggering #wither")
+      attacker_name = response.match_data.named_captures["attacker"] || response.match_data.named_captures["attacker_quoted"]
+      attacker_imod = response.match_data.named_captures["attacker_imod"]
+      defender_name = response.match_data.named_captures["defender"] || response.match_data.named_captures["defender_quoted"]
+      defender_imod = response.match_data.named_captures["defender_imod"]
+      room = response.message.source.room_object
+
+      with_character(robot, redis, room, attacker_name) do |attacker|
+        with_character(robot, redis, room, defender_name) do |defender|
+          attacker.initiative += attacker_imod.to_i
+          defender.initiative += defender_imod.to_i
+          defender.onslaught -= 1
+          robot.trigger(:list_order, room: room)
+        end
       end
     end
 
