@@ -2,6 +2,9 @@ require 'json'
 require_relative './adapter/discord'
 require_relative './handler/ex3'
 
+# This is a conflicting deprecation warning in redis-namespace, so suppress it in the output for now.
+Redis.exists_returns_integer = false
+
 Lita.configure do |config|
   discord_config = JSON.parse(File.read(ENV["DISCORD_CONFIG_FILE"]))
 
