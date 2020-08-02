@@ -24,41 +24,38 @@ module Lita::Handlers
 
     def join(response)
       log.debug("Triggering #join")
-      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
-      room = response.message.source.room
+      name, room = get_name_and_room(response)
       initiative = response.match_data.named_captures["num"].to_i
 
-      character = Ex3Bot::Character.create!(redis, room, name)
+      character = Ex3Bot::Character.create!(redis, room.id, name)
       character.initiative!(initiative)
-      robot.trigger(:list_order, room: response.message.source.room_object)
+      robot.trigger(:list_order, room: room)
     end
 
     def init(response)
       log.debug("Triggering #init")
-      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
-      room = response.message.source.room
+      name, room = get_name_and_room(response)
       initiative = response.match_data.named_captures["num"].to_i
 
-      character = Ex3Bot::Character.new(redis, room, name)
+      character = Ex3Bot::Character.new(redis, room.id, name)
       if character.exists?
         character.initiative!(initiative)
-        robot.trigger(:list_order, room: response.message.source.room_object)
+        robot.trigger(:list_order, room: room)
       else
-        robot.trigger(:error_no_name, room: response.message.source.room_object, name: name)
+        robot.trigger(:error_no_name, room: room, name: name)
       end
     end
 
     def act(response)
       log.debug("Triggering #act")
-      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
-      room = response.message.source.room
+      name, room = get_name_and_room(response)
 
-      character = Ex3Bot::Character.new(redis, room, name)
+      character = Ex3Bot::Character.new(redis, room.id, name)
       if character.exists?
         character.acted!(true)
-        robot.trigger(:list_order, room: response.message.source.room_object)
+        robot.trigger(:list_order, room: room)
       else
-        robot.trigger(:error_no_name, room: response.message.source.room_object, name: name)
+        robot.trigger(:error_no_name, room: room, name: name)
       end
     end
 
@@ -124,6 +121,13 @@ module Lita::Handlers
     def error_no_name(room:, name:)
       log.debug("Triggering #error_no_name")
       robot.send_message(Lita::Source.new(room: room), "Name not found: #{name}")
+    end
+
+    ### Helpers
+    private def get_name_and_room(response)
+      name = response.match_data.named_captures["name"] || response.match_data.named_captures["name_quoted"]
+      room = response.message.source.room_object
+      [name, room]
     end
   end
 
