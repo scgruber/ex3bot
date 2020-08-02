@@ -15,6 +15,9 @@ module Lita::Handlers
     route(/^wither\s+(?:(?<attacker>[^\s\"]+)|\"(?<attacker_quoted>[^\"]+)\")\s+(?<attacker_imod>[+-]\d+)\s+>\s+(?:(?<defender>[^\s\"]+)|\"(?<defender_quoted>[^\"]+)\")\s+(?<defender_imod>[+-]\d+)$/, :wither, command: true, help: {
         "wither ATTACKER AMOD > DEFENDER DMOD" => "Withering attack. ATTACKER initiative changes by AMOD. DEFENDER initiative changes by DMOD. Defender gains onslaught."
     })
+    route(/^wound\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :wound, command: true, help: {
+        "wound CHARACTER NUM" => "Set wound penalty for CHARACTER to NUM."
+    })
     route(/^act\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")$/, :act, command: true, help: {
         "act CHARACTER" => "Mark CHARACTER as acted for the current round."
     })
@@ -90,6 +93,24 @@ module Lita::Handlers
           defender.onslaught -= 1
           robot.trigger(:list_order, room: room)
         end
+      end
+    end
+
+    # Set a character's wound penalty to <num>.
+    # If wound penalty is > 0, send an error message instead.
+    # Display the initiative order.
+    def wound(response)
+      log.debug("Triggering #wound")
+      name, room = get_name_and_room(response)
+      wound_penalty = response.match_data.named_captures["num"].to_i
+      if wound_penalty > 0
+        response.reply("Wound penalty must be 0 or negative.")
+        return
+      end
+
+      with_character(robot, redis, room, name) do |character|
+        character.wound = wound_penalty
+        robot.trigger(:list_order, room: room)
       end
     end
 
