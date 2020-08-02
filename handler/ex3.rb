@@ -9,6 +9,9 @@ module Lita::Handlers
     route(/^init\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :init, command: true, help: {
         "init CHARACTER NUM" => "Set initiative for CHARACTER to NUM."
     })
+    route(/^ons\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :ons, command: true, help: {
+        "ons CHARACTER NUM" => "Set onslaught for CHARACTER to NUM."
+    })
     route(/^act\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")$/, :act, command: true, help: {
         "act CHARACTER" => "Mark CHARACTER as acted for the current round."
     })
@@ -48,7 +51,26 @@ module Lita::Handlers
       end
     end
 
+    # Set a character's onslaught to <num>.
+    # If onslaught is > 0, send an error message instead.
+    # Display the initiative order.
+    def ons(response)
+      log.debug("Triggering #ons")
+      name, room = get_name_and_room(response)
+      onslaught = response.match_data.named_captures["num"].to_i
+      if onslaught > 0
+        response.reply("Onslaught modifier must be 0 or negative.")
+        return
+      end
+
+      with_character(robot, redis, room, name) do |character|
+        character.onslaught = onslaught
+        robot.trigger(:list_order, room: room)
+      end
+    end
+
     # Set a character to the acted state.
+    # Reset onslaught to 0.
     # Display the initiative order.
     def act(response)
       log.debug("Triggering #act")
@@ -56,6 +78,7 @@ module Lita::Handlers
 
       with_character(robot, redis, room, name) do |character|
         character.acted = true
+        character.onslaught = 0
         robot.trigger(:list_order, room: room)
       end
     end

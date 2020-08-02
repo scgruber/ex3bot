@@ -49,6 +49,14 @@ module Ex3Bot
       raw.to_i
     end
 
+    def onslaught=(o)
+      @redis.hset(record_key, "onslaught", o)
+    end
+
+    def onslaught(raw=@redis.hget(record_key, "onslaught"))
+      raw.to_i
+    end
+
     def acted=(a)
       @redis.hset(record_key, "acted", a ? "y" : "n")
     end
@@ -64,10 +72,15 @@ module Ex3Bot
     def to_s
       fields = @redis.hgetall(record_key)
       display = {}
-      display[:initiative] = initiative(fields["initiative"]).to_s.rjust(3)
+      display[:initiative] = initiative(fields["initiative"].to_i).to_s.rjust(3)
       display[:name] = name(fields["name"]).to_s
+      display[:onslaught] = onslaught(fields["onslaught"].to_i).to_s if fields.has_key?("onslaught") && fields["onslaught"].to_i != 0
 
-      "`#{display[:initiative]}` **#{display[:name]}**"
+      output = ""
+      output += "`#{display[:initiative]}` **#{display[:name]}**"
+      output += " [onslaught: #{display[:onslaught]}]" if display.has_key?(:onslaught)
+
+      output
     end
   end
 end
