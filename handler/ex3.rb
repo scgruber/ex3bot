@@ -18,6 +18,9 @@ module Lita::Handlers
     route(/^wound\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :wound, command: true, help: {
         "wound CHARACTER NUM" => "Set wound penalty for CHARACTER to NUM."
     })
+    route(/^decisive\s+(?:(?<attacker>[^\s\"]+)|\"(?<attacker_quoted>[^\"]+)\")\s+(?<attacker_ireset>-?\d+)\s+>\s+(?:(?<defender>[^\s\"]+)|\"(?<defender_quoted>[^\"]+)\")\s+(?<defender_wound>-?\d+)$/, :decisive, command: true, help: {
+        "wither ATTACKER IRESET > DEFENDER WOUND" => "Withering attack. ATTACKER initiative resets to IRESET. DEFENDER wound penalty changes to WOUND. Defender gains onslaught."
+    })
     route(/^act\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")$/, :act, command: true, help: {
         "act CHARACTER" => "Mark CHARACTER as acted for the current round."
     })
@@ -111,6 +114,27 @@ module Lita::Handlers
       with_character(robot, redis, room, name) do |character|
         character.wound = wound_penalty
         robot.trigger(:list_order, room: room)
+      end
+    end
+
+    # Reset attacker initiative to <attacker_ireset>.
+    # Set defender wound penalty to <defender_wound>.
+    # Worsen defender onslaught penalty by 1.
+    def decisive(response)
+      log.debug("Triggering #decisive")
+      attacker_name = response.match_data.named_captures["attacker"] || response.match_data.named_captures["attacker_quoted"]
+      attacker_ireset = response.match_data.named_captures["attacker_ireset"]
+      defender_name = response.match_data.named_captures["defender"] || response.match_data.named_captures["defender_quoted"]
+      defender_wound = response.match_data.named_captures["defender_wound"]
+      room = response.message.source.room_object
+
+      with_character(robot, redis, room, attacker_name) do |attacker|
+        with_character(robot, redis, room, defender_name) do |defender|
+          attacker.initiative = attacker_ireset.to_i
+          defender.wound = defender_wound.to_i
+          defender.onslaught -= 1
+          robot.trigger(:list_order, room: room)
+        end
       end
     end
 
