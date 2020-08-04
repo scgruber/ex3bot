@@ -27,6 +27,12 @@ module Lita::Handlers
     route(/^decisive\s+(?:(?<attacker>[^\s\"]+)|\"(?<attacker_quoted>[^\"]+)\")\s+(?<attacker_ireset>-?\d+)\s+>\s+(?:(?<defender>[^\s\"]+)|\"(?<defender_quoted>[^\"]+)\")\s+(?<defender_wound>-?\d+)$/, :decisive, command: true, help: {
         "wither ATTACKER IRESET > DEFENDER WOUND" => "Withering attack. ATTACKER initiative resets to IRESET. DEFENDER wound penalty changes to WOUND. Defender gains onslaught."
     })
+    route(/^tag\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?:(?<tags>[^\s\"]+)|\"(?<tags_quoted>[^\"]*)\")$/, :tag, command: true, help: {
+        "tag CHARACTER TAG1|TAG2|..." => "Add TAG1, TAG2, ... to CHARACTER."
+    })
+    route(/^untag\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<indices>[\d\|]+)$/, :untag, command: true, help: {
+        "untag CHARACTER N|M|..." => "Remove tags at N, M, ... from CHARACTER."
+    })
     route(/^act\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")$/, :act, command: true, help: {
         "act CHARACTER" => "Mark CHARACTER as acted for the current round."
     })
@@ -173,6 +179,32 @@ module Lita::Handlers
           defender.onslaught -= 1
           robot.trigger(:list_order, room: room)
         end
+      end
+    end
+
+    # Add <tags> to a character.
+    # Display the initiative order.
+    def tag(response)
+      log.debug("Triggering #tag")
+      name, room = get_name_and_room(response)
+      tags = (response.match_data.named_captures["tags"] || response.match_data.named_captures["tags_quoted"]).split("|")
+
+      with_character(robot, redis, room, name) do |character|
+        character.add_tags!(tags)
+        robot.trigger(:list_order, room: room)
+      end
+    end
+
+    # Remove tags at <indices> from a character.
+    # Display the initiative order.
+    def untag(response)
+      log.debug("Triggering #untag")
+      name, room = get_name_and_room(response)
+      indices = (response.match_data.named_captures["indices"]).split("|").map {|i| i.to_i}
+
+      with_character(robot, redis, room, name) do |character|
+        character.remove_tags!(indices)
+        robot.trigger(:list_order, room: room)
       end
     end
 

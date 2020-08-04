@@ -81,6 +81,18 @@ module Ex3Bot
       raw.to_i
     end
 
+    def add_tags!(new_tags)
+      @redis.hset(record_key, "tags", (tags + new_tags).uniq.sort.join("|"))
+    end
+
+    def remove_tags!(indices)
+      @redis.hset(record_key, "tags", tags.each_with_index.reject {|t, i| indices.include?(i)}.map(&:first).join("|"))
+    end
+
+    def tags(raw=@redis.hget(record_key, "tags"))
+      raw.to_s.split("|")
+    end
+
     def acted=(a)
       @redis.hset(record_key, "acted", a ? "y" : "n")
     end
@@ -102,6 +114,7 @@ module Ex3Bot
       display[:anima] = location(fields["anima"]).to_s if fields.has_key?("anima") && fields["anima"] != "dim"
       display[:onslaught] = onslaught(fields["onslaught"].to_i).to_s if fields.has_key?("onslaught") && fields["onslaught"].to_i != 0
       display[:wound] = onslaught(fields["wound"].to_i).to_s if fields.has_key?("wound") && fields["wound"].to_i != 0
+      display[:tags] = tags(fields["tags"]) if fields.has_key?("tags") && fields["tags"] != ""
 
       output = ""
       output += "`#{display[:initiative]}` **#{display[:name]}**"
@@ -109,6 +122,7 @@ module Ex3Bot
       output += " [#{display[:anima]}]" if display.has_key?(:anima)
       output += " [onslaught: #{display[:onslaught]}]" if display.has_key?(:onslaught)
       output += " [wound: #{display[:wound]}]" if display.has_key?(:wound)
+      output += " #{display[:tags].map {|t| "[#{t}]"}.join(" ")}" if display.has_key?(:tags)
 
       output
     end
