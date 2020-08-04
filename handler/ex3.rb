@@ -12,6 +12,9 @@ module Lita::Handlers
     route(/^loc\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?:(?<place>[^\s\"]+)|\"(?<place_quoted>[^\"]*)\")$/, :loc, commmand: true, help: {
         "loc CHARACTER PLACE" => "Set location for CHARACTER to PLACE."
     })
+    route(/^anima\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<level>[a-z]+)$/, :anima, command: true, help: {
+        "anima CHARACTER LEVEL" => "Set anima level for CHARACTER to LEVEL."
+    })
     route(/^ons\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :ons, command: true, help: {
         "ons CHARACTER NUM" => "Set onslaught for CHARACTER to NUM."
     })
@@ -72,6 +75,25 @@ module Lita::Handlers
 
       with_character(robot, redis, room, name) do |character|
         character.location = location
+        robot.trigger(:list_order, room: room)
+      end
+    end
+
+    # Set a character's anima level to <level>.
+    # Display the initiative order.
+    def anima(response)
+      allowed = ["dim", "glowing", "burning", "bonfire"]
+
+      log.debug("Triggering #anima")
+      name, room = get_name_and_room(response)
+      anima = response.match_data.named_captures["level"]
+      unless allowed.include?(anima)
+        response.reply("Anima level must be one of: #{allowed.join(', ')}")
+        return
+      end
+
+      with_character(robot, redis, room, name) do |character|
+        character.anima = anima
         robot.trigger(:list_order, room: room)
       end
     end
