@@ -49,6 +49,14 @@ module Ex3Bot
       raw.to_i
     end
 
+    def location=(l)
+      @redis.hset(record_key, "location", l)
+    end
+
+    def location(raw=@redis.hget(record_key, "location"))
+      raw.to_s
+    end
+
     def onslaught=(o)
       @redis.hset(record_key, "onslaught", o)
     end
@@ -82,11 +90,13 @@ module Ex3Bot
       display = {}
       display[:initiative] = initiative(fields["initiative"].to_i).to_s.rjust(3)
       display[:name] = name(fields["name"]).to_s
+      display[:location] = location(fields["location"]).to_s if fields.has_key?("location") && fields["location"] != ""
       display[:onslaught] = onslaught(fields["onslaught"].to_i).to_s if fields.has_key?("onslaught") && fields["onslaught"].to_i != 0
       display[:wound] = onslaught(fields["wound"].to_i).to_s if fields.has_key?("wound") && fields["wound"].to_i != 0
 
       output = ""
       output += "`#{display[:initiative]}` **#{display[:name]}**"
+      output += " (#{display[:location]})" if display.has_key?(:location)
       output += " [onslaught: #{display[:onslaught]}]" if display.has_key?(:onslaught)
       output += " [wound: #{display[:wound]}]" if display.has_key?(:wound)
 

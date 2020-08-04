@@ -9,6 +9,9 @@ module Lita::Handlers
     route(/^init\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :init, command: true, help: {
         "init CHARACTER NUM" => "Set initiative for CHARACTER to NUM."
     })
+    route(/^loc\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?:(?<place>[^\s\"]+)|\"(?<place_quoted>[^\"]*)\")$/, :loc, commmand: true, help: {
+        "loc CHARACTER PLACE" => "Set location for CHARACTER to PLACE."
+    })
     route(/^ons\s+(?:(?<name>[^\s\"]+)|\"(?<name_quoted>[^\"]+)\")\s+(?<num>-?\d+)$/, :ons, command: true, help: {
         "ons CHARACTER NUM" => "Set onslaught for CHARACTER to NUM."
     })
@@ -56,6 +59,19 @@ module Lita::Handlers
 
       with_character(robot, redis, room, name) do |character|
         character.initiative = initiative
+        robot.trigger(:list_order, room: room)
+      end
+    end
+
+    # Set a character's location to <place>.
+    # Display the initiative order.
+    def loc(response)
+      log.debug("Triggering #loc")
+      name, room = get_name_and_room(response)
+      location = response.match_data.named_captures["place"] || response.match_data.named_captures["place_quoted"]
+
+      with_character(robot, redis, room, name) do |character|
+        character.location = location
         robot.trigger(:list_order, room: room)
       end
     end
