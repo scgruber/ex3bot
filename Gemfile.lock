@@ -44,10 +44,10 @@ GEM
     multi_json (1.15.0)
     multipart-post (2.1.1)
     netrc (0.11.0)
-    nio4r (2.5.2)
+    nio4r (2.5.9)
     opus-ruby (1.0.1)
       ffi
-    puma (4.3.5)
+    puma (6.3.1)
       nio4r (~> 2.0)
     rack (1.6.13)
     rb-readline (0.5.5)
